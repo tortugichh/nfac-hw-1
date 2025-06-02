@@ -6,6 +6,8 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [motivation, setMotivation] = useState('');
+  const [completedCount, setCompletedCount] = useState(0);
+  const [selectedTime, setSelectedTime] = useState(10);
 
 
   const motivationPhrases = [
@@ -20,37 +22,51 @@ export default function App() {
     return motivationPhrases[randomIndex];
   };
   
+  const progressPercent = ((selectedTime - timer) / selectedTime) * 100;
+
+  useEffect(() => {
+    const savedName = localStorage.getItem('timerName');
+    if (savedName) setName(savedName);
+  }, []);
+
   useEffect(() => {
     let interval;
     
     if (isRunning && timer > 0) {
       interval = setInterval(() => {
-        setTimer(timer - 1);
+        setTimer(prev => prev - 1);
       }, 1000);
-    } else if (timer === 0) {
+    } else if (timer === 0 && isRunning) {
       setIsRunning(false);
       setIsDone(true);
       setMotivation(getRandomPhrase());
-
+      setCompletedCount(prev => prev + 1);
     }
 
     return () => clearInterval(interval);
   }, [isRunning, timer]);
 
+  const handleNameChange = (e) => {
+    setName(e.target.value);
+    localStorage.setItem('timerName', e.target.value);
+  };
+
   const startTimer = () => {
     setIsRunning(true);
     setIsDone(false);
+    setTimer(selectedTime);
   };
 
   const reset = () => {
-    setTimer(10);
     setIsRunning(false);
     setIsDone(false);
     setName('');
+    setTimer(selectedTime);
+
   };
 
   const tryAgain = () => {
-    setTimer(10);
+    setTimer(selectedTime);
     setIsRunning(false);
     setIsDone(false);
     setMotivation('');
@@ -59,16 +75,31 @@ export default function App() {
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center ">
       <h1 className="text-2xl font-bold mb-6 text-center">Timer</h1>
-      
+
+      {completedCount > 0 && (
+        <p className="text-green-600 mb-4">Завершено: {completedCount} раз </p>
+      )}
+
       {!isDone ? (
         <div>
           <input
             type="text"
             placeholder="Your name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={handleNameChange}
             className="w-full p-2 border rounded mb-4"
           />
+
+          <select
+            value={selectedTime}
+            onChange={(e) => setSelectedTime(Number(e.target.value))}
+            disabled={isRunning}
+            className="w-full p-2 border rounded mb-4 disabled:bg-gray-200"
+          >
+            <option value={10}>10 секунд</option>
+            <option value={20}>20 секунд</option>
+            <option value={30}>30 секунд</option>
+          </select>
 
            <div className="text-center">
               {isRunning && name ? (
@@ -79,6 +110,15 @@ export default function App() {
               
             </div>
           
+          {isRunning && (
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+          )}
+
           <h1 className="text-4xl font-bold text-center mb-4">
             {timer}
           </h1>
@@ -95,6 +135,9 @@ export default function App() {
         </div>
       ) : (
         <div className="text-center">
+          <div className="text-6xl mb-4 animate-bounce">Congrats!</div>
+
+
           <h2 className="text-xl mb-4">
             Ты справился, {name}!
           </h2>
